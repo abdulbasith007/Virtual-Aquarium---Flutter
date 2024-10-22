@@ -14,7 +14,8 @@ class DatabaseHelper {
     );
   }
 
-  static Future<void> saveSettings(int fishCount, double speed, int color) async {
+  static Future<void> saveSettings(
+      int fishCount, double speed, int color) async {
     final db = await database();
     await db.insert(
       'settings',
@@ -25,16 +26,18 @@ class DatabaseHelper {
 
   static Future<Map<String, dynamic>> loadSettings() async {
     final db = await database();
-    final List<Map<String, dynamic>> maps = await db.query('settings', where: 'id = ?', whereArgs: [1]);
+    final List<Map<String, dynamic>> maps =
+        await db.query('settings', where: 'id = ?', whereArgs: [1]);
 
     if (maps.isNotEmpty) {
       return maps.first;
     } else {
+      // Default settings if nothing is saved
       return {
         'fishCount': 0,
         'speed': 1.0,
         'color': 0xFFFF0000
-      };
+      }; // Default to red
     }
   }
 }

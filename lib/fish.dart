@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 
 class Fish {
-  Color color; 
+  Color color; // Removed 'final' to allow color change
   final double speed;
   Offset position;
   Random random = Random();
 
   Fish({required this.color, required this.speed})
-      : position = Offset(150, 150);
+      : position = Offset(150, 150); // Initial position in the center
 
   void moveFish() {
+    // Logic for moving the fish
     double dx = random.nextDouble() * 2 - 1;
     double dy = random.nextDouble() * 2 - 1;
     position = Offset(position.dx + dx * speed, position.dy + dy * speed);

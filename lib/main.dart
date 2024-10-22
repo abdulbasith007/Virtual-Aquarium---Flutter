@@ -10,7 +10,7 @@ class VirtualAquariumApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Virtual Aquarium',
-      theme: ThemeData.dark(),
+      theme: ThemeData.dark(), // Dark theme applied
       home: AquariumScreen(),
     );
   }
