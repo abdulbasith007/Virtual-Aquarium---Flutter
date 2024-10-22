@@ -1,256 +1,216 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'fish.dart';
-import 'database_helper.dart'; // Import the database helper
+import 'database_helper.dart';
 
-class AquariumScreen extends StatefulWidget {
+class AquariumPage extends StatefulWidget {
   @override
-  _AquariumScreenState createState() => _AquariumScreenState();
+  _AquariumPageState createState() => _AquariumPageState();
 }
 
-class _AquariumScreenState extends State<AquariumScreen>
-    with SingleTickerProviderStateMixin {
-  List<Fish> fishList = [];
-  Color selectedColor = Colors.red; // Default fish color (red)
-  double selectedSpeed = 1.0;
-  bool collisionEffectEnabled = true;
+class _AquariumPageState extends State<AquariumPage> with SingleTickerProviderStateMixin {
+  List<Fish> aquariumFish = [];
+  Color currentColor = Colors.blueAccent;
+  double fishSpeed = 1.0;
+  bool isCollisionEnabled = true;
 
-  late AnimationController _controller;
+  late AnimationController animationController;
 
-  // Available color options and their names
-  final Map<Color, String> colorOptions = {
-    Colors.red: "Red",
-    Colors.green: "Green",
+  final Map<Color, String> colorChoices = {
+    Colors.blueAccent: "Blue",
+    Colors.pink: "Pink",
+    Colors.teal: "Teal",
     Colors.yellow: "Yellow",
-    Colors.orange: "Orange",
-    Colors.purple: "Purple"
+    Colors.purpleAccent: "Purple"
   };
 
   @override
   void initState() {
     super.initState();
-    _loadSavedSettings(); // Load settings from the database on startup
-    _controller = AnimationController(
+    _loadUserSettings();
+    animationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat();
-    _controller.addListener(_updateFishPositions);
+    animationController.addListener(_moveFish);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    animationController.dispose();
     super.dispose();
   }
 
-  // Function to load saved settings from the database
-  Future<void> _loadSavedSettings() async {
-    final settings = await DatabaseHelper.loadSettings();
+  Future<void> _loadUserSettings() async {
+    final settings = await DBHelper.loadConfig();
     setState(() {
-      selectedSpeed = settings['speed'];
-      selectedColor = Color(settings['color']); // Load saved color
-      // If the saved color is not in the dropdown options, fallback to red
-      if (!_colorInDropdown(selectedColor)) {
-        selectedColor = Colors.red;
+      fishSpeed = settings['speed'];
+      currentColor = Color(settings['color']);
+      if (!_isColorInChoices(currentColor)) {
+        currentColor = Colors.blueAccent;
       }
       int fishCount = settings['fishCount'];
-
-      // Add fish based on the saved count
       for (int i = 0; i < fishCount; i++) {
-        fishList.add(Fish(color: selectedColor, speed: selectedSpeed));
+        aquariumFish.add(Fish(color: currentColor, speed: fishSpeed));
       }
     });
   }
 
-  // Save current settings to the database
-  Future<void> _saveSettings() async {
-    await DatabaseHelper.saveSettings(
-        fishList.length, selectedSpeed, selectedColor.value);
+  Future<void> _saveUserSettings() async {
+    await DBHelper.saveConfig(aquariumFish.length, fishSpeed, currentColor.value);
   }
 
-  // Add fish to the aquarium
-  void _addFish() {
-    if (fishList.length < 10) {
+  void _addNewFish() {
+    if (aquariumFish.length < 12) {
       setState(() {
-        fishList.add(Fish(color: selectedColor, speed: selectedSpeed));
-        _saveSettings(); // Save settings when adding a fish
+        aquariumFish.add(Fish(color: currentColor, speed: fishSpeed));
+        _saveUserSettings();
       });
     }
   }
 
-  // Update the positions of fish and check for collisions
-  void _updateFishPositions() {
+  void _moveFish() {
     setState(() {
-      for (var fish in fishList) {
-        fish.moveFish(); // Move fish
+      for (var fish in aquariumFish) {
+        fish.updatePosition();
       }
-      if (collisionEffectEnabled) {
-        _checkAllCollisions(); // Check for collisions if enabled
+      if (isCollisionEnabled) {
+        _detectCollisions();
       }
     });
   }
 
-  // Check if two fish collide and apply behavior
-  void _checkForCollision(Fish fish1, Fish fish2) {
-    if ((fish1.position.dx - fish2.position.dx).abs() < 20 &&
-        (fish1.position.dy - fish2.position.dy).abs() < 20) {
-      fish1.changeDirection();
-      fish2.changeDirection();
-      setState(() {
-        fish1.color = Random().nextBool()
-            ? Colors.red
-            : Colors.green; // Random color change
-      });
-    }
-  }
-
-  // Check all fish for potential collisions
-  void _checkAllCollisions() {
-    for (int i = 0; i < fishList.length; i++) {
-      for (int j = i + 1; j < fishList.length; j++) {
-        _checkForCollision(fishList[i], fishList[j]);
+  void _detectCollisions() {
+    for (int i = 0; i < aquariumFish.length; i++) {
+      for (int j = i + 1; j < aquariumFish.length; j++) {
+        _handleCollision(aquariumFish[i], aquariumFish[j]);
       }
     }
   }
 
-  // Helper function to check if the color exists in the dropdown options
-  bool _colorInDropdown(Color color) {
-    return colorOptions.keys.contains(color);
+  void _handleCollision(Fish fishA, Fish fishB) {
+    if ((fishA.position.dx - fishB.position.dx).abs() < 20 &&
+        (fishA.position.dy - fishB.position.dy).abs() < 20) {
+      fishA.changeDirection();
+      fishB.changeDirection();
+      setState(() {
+        fishA.color = Random().nextBool() ? Colors.blueAccent : Colors.pink;
+      });
+    }
+  }
+
+  bool _isColorInChoices(Color color) {
+    return colorChoices.keys.contains(color);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get screen size for responsiveness
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       appBar: AppBar(
         title: Center(
-          child: Text('Virtual Aquarium'),
+          child: Text('Virtual Aquarium App - Basith Abdul'),
         ),
       ),
       body: Stack(
         children: [
           Column(
             children: [
-              SizedBox(
-                  height: screenHeight * 0.02), // Responsive space at the top
-
-              // Container that represents the aquarium
+              SizedBox(height: screenHeight * 0.03),
               Center(
                 child: Container(
-                  width: screenWidth * 0.8, // 80% of the screen width
-                  height: screenHeight * 0.4, // 40% of the screen height
+                  width: screenWidth * 0.85,
+                  height: screenHeight * 0.45,
                   decoration: BoxDecoration(
-                    color: Colors.blue, // Set the aquarium background to blue
+                    color: Colors.cyan,
                     border: Border.all(color: Colors.white),
-                    borderRadius:
-                        BorderRadius.circular(15), // Rounded edges for aquarium
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Stack(
-                    children: fishList.map((fish) => fish.buildFish()).toList(),
+                    children: aquariumFish.map((fish) => fish.render()).toList(),
                   ),
                 ),
               ),
-
-              SizedBox(height: screenHeight * 0.02), // Space after the aquarium
-
-              // Buttons and settings
+              SizedBox(height: screenHeight * 0.03),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   ElevatedButton(
-                    onPressed: _addFish,
+                    onPressed: _addNewFish,
                     child: Text('Add Fish'),
                   ),
                   ElevatedButton(
-                    onPressed: _saveSettings,
+                    onPressed: _saveUserSettings,
                     child: Text('Save Settings'),
                   ),
                 ],
               ),
-
-              SizedBox(height: screenHeight * 0.02), // Space after buttons
-
-              // Slider to control fish speed
+              SizedBox(height: screenHeight * 0.03),
               Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal:
-                        screenWidth * 0.1), // Padding based on screen width
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
                 child: Slider(
-                  value: selectedSpeed,
+                  value: fishSpeed,
                   onChanged: (newSpeed) {
                     setState(() {
-                      selectedSpeed = newSpeed;
+                      fishSpeed = newSpeed;
                     });
-                    _saveSettings(); // Save settings when speed changes
+                    _saveUserSettings();
                   },
                   min: 0.5,
                   max: 3.0,
                   divisions: 5,
-                  label: '$selectedSpeed',
+                  label: '$fishSpeed',
                 ),
               ),
-
-              // Dropdown to select fish color with proper names
               Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal:
-                        screenWidth * 0.1), // Padding based on screen width
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
                 child: DropdownButton<Color>(
-                  value:
-                      selectedColor, // Ensure selectedColor matches one of the items below
-                  items: colorOptions.keys.map((Color color) {
+                  value: currentColor,
+                  items: colorChoices.keys.map((Color color) {
                     return DropdownMenuItem<Color>(
                       value: color,
                       child: Text(
-                        colorOptions[color] ?? 'Unknown',
+                        colorChoices[color] ?? 'Unknown',
                         style: TextStyle(color: color),
                       ),
                     );
                   }).toList(),
                   onChanged: (color) {
                     setState(() {
-                      selectedColor = color ??
-                          Colors.red; // Default to red if color is null
+                      currentColor = color ?? Colors.blueAccent;
                     });
-                    _saveSettings(); // Save settings when color changes
+                    _saveUserSettings();
                   },
                 ),
               ),
-
-              SizedBox(height: screenHeight * 0.02), // Space after dropdown
-
-              // Toggle switch for enabling/disabling collision effect
+              SizedBox(height: screenHeight * 0.03),
               SwitchListTile(
-                title: Text('Enable Collision Effect'),
-                value: collisionEffectEnabled,
+                title: Text('Enable Collision Detection'),
+                value: isCollisionEnabled,
                 onChanged: (bool value) {
                   setState(() {
-                    collisionEffectEnabled = value;
+                    isCollisionEnabled = value;
                   });
                 },
               ),
             ],
           ),
-
-          // Name and Panther ID centered at the bottom in a small rounded card
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Card(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
+                  borderRadius: BorderRadius.circular(20.0),
                 ),
-                color: Colors.white
-                    .withOpacity(0.8), // Slightly transparent background
+                color: Colors.white.withOpacity(0.85),
                 elevation: 5,
                 child: Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Text(
-                    'Basith Abdul\nPanther ID: 002838231',
+                    'Panther ID: 002838231',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,

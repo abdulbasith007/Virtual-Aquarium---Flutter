@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'aquarium.dart';
 
 void main() {
-  runApp(VirtualAquariumApp());
+  runApp(AquariumApp());
 }
 
-class VirtualAquariumApp extends StatelessWidget {
+class AquariumApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Virtual Aquarium',
-      theme: ThemeData.dark(), // Dark theme applied
-      home: AquariumScreen(),
+      title: 'Virtual Aquarium App - Basith Abdul',
+      theme: ThemeData.light(),
+      home: AquariumPage(),
     );
   }
 }

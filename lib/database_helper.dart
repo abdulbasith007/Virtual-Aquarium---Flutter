@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-class DatabaseHelper {
-  static Future<Database> database() async {
+class DBHelper {
+  static Future<Database> getDatabase() async {
     return openDatabase(
       join(await getDatabasesPath(), 'aquarium.db'),
       onCreate: (db, version) {
@@ -14,9 +14,8 @@ class DatabaseHelper {
     );
   }
 
-  static Future<void> saveSettings(
-      int fishCount, double speed, int color) async {
-    final db = await database();
+  static Future<void> saveConfig(int fishCount, double speed, int color) async {
+    final db = await getDatabase();
     await db.insert(
       'settings',
       {'id': 1, 'fishCount': fishCount, 'speed': speed, 'color': color},
@@ -24,20 +23,18 @@ class DatabaseHelper {
     );
   }
 
-  static Future<Map<String, dynamic>> loadSettings() async {
-    final db = await database();
-    final List<Map<String, dynamic>> maps =
-        await db.query('settings', where: 'id = ?', whereArgs: [1]);
+  static Future<Map<String, dynamic>> loadConfig() async {
+    final db = await getDatabase();
+    final List<Map<String, dynamic>> records = await db.query('settings', where: 'id = ?', whereArgs: [1]);
 
-    if (maps.isNotEmpty) {
-      return maps.first;
+    if (records.isNotEmpty) {
+      return records.first;
     } else {
-      // Default settings if nothing is saved
       return {
         'fishCount': 0,
         'speed': 1.0,
-        'color': 0xFFFF0000
-      }; // Default to red
+        'color': 0xFF00FFFF
+      }; 
     }
   }
 }
